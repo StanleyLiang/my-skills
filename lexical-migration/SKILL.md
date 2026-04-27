@@ -1,6 +1,6 @@
 ---
 name: lexical-migration
-description: Use when migrating an in-house Lexical-based rich-text editor to a newer Lexical version (typically for React 19 compatibility). Auto-invoke when the user mentions upgrading Lexical, fixing a Lexical editor for React 19, or migrating @lexical/react. Also auto-invoke on Traditional Chinese prompts like 「升級 Lexical」「Lexical 編輯器搬遷」「lexical 遷移」. The skill stocktakes the in-house editor first — locating its custom nodes, plugins, commands, themes, and serialization surface — then asks the user to confirm or amend the discovered spec before any code transforms run. Walks an ordered phased playbook with verification gates, queue-driven per-file porting, and explicit STOP triggers for unsafe changes. Designed for ~12k-token sessions: one tiny step per session, resumable from `./.lexm/state.json`.
+description: Use when migrating an in-house Lexical-based rich-text editor to a newer Lexical version (typically for React 19 compatibility). Auto-invoke when the user mentions upgrading Lexical, fixing a Lexical editor for React 19, or migrating @lexical/react. Also auto-invoke on Traditional Chinese prompts like 「升級 Lexical」「Lexical 編輯器搬遷」「lexical 遷移」. The skill audits the in-house editor first — locating its custom nodes, plugins, commands, themes, and serialization surface — then asks the user to confirm or amend the discovered spec before any code transforms run. Walks an ordered phased playbook with verification gates, queue-driven per-file porting, and explicit STOP triggers for unsafe changes. Designed for ~12k-token sessions: one tiny step per session, resumable from `./.lexm/state.json`.
 ---
 
 # lexical-migration
@@ -41,7 +41,7 @@ Migrate an in-house Lexical editor across version boundaries (e.g. 0.18 → late
 - Never skip a STOP. If a script exits non-zero, surface the `STOP <reason>` line and stop.
 - Never modify files outside `<editorRoot>` or `<repoRoot>/.lexm/`.
 - Never use `WebFetch` / `WebSearch`. All references are local under `references/`.
-- Never bump Lexical without first stocktaking. The audit's spec is the contract every later phase consumes.
+- Never bump Lexical without first auditing. The audit's spec is the contract every later phase consumes.
 
 ## Scope
 
@@ -55,7 +55,7 @@ Migrate an in-house Lexical editor across version boundaries (e.g. 0.18 → late
 
 | Phase | Name | Key script | What it does |
 |---|---|---|---|
-| 0 | Stocktake (audit) | `audit.mjs` | Locate editor; inventory nodes, plugins, commands, themes, serialization, React 19 risks |
+| 0 | Audit | `audit.mjs` | Locate editor; inventory nodes, plugins, commands, themes, serialization, React 19 risks |
 | 1 | Confirm spec | `build-spec.mjs` | ASK user to approve/amend the auto-derived editor spec (markdown) |
 | 2 | Plan version path | `plan-version.mjs` | ASK target Lexical version; emit ordered hops if multi-version jump |
 | 3 | Upgrade deps | `upgrade-deps.mjs` | Bump `lexical` + `@lexical/*` to target; install; baseline verify (pre-transform) |

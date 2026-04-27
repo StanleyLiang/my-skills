@@ -2,7 +2,7 @@
 
 Loaded section-by-section by `next.mjs` when the agent needs context. Do not auto-load.
 
-## Phase 0 — Stocktake (audit)
+## Phase 0 — Audit
 
 Locate the editor (`editorRoot`). Walk it. Detect:
 - Lexical & `@lexical/*` versions in `package.json`.

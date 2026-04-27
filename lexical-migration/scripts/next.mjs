@@ -36,7 +36,7 @@ function nextDirective(state, audit, migration) {
     case '0':
       // audit just ran; commit the audit artifact and advance
       if (state.step === 'audit-done')
-        return `COMMIT chore(lexm): stocktake editor (lexical=${audit?.lexicalVersions?.lexical || '?'})`;
+        return `COMMIT chore(lexm): audit editor (lexical=${audit?.lexicalVersions?.lexical || '?'})`;
       return `RUN node ${sc('audit.mjs')}`;
     case '1':
       if (state.step === 'enter') return `RUN node ${sc('build-spec.mjs')} --emit-prompt`;

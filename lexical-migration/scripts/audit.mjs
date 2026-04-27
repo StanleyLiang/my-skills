@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Phase 0 — Stocktake the in-house Lexical editor.
+// Phase 0 — Audit the in-house Lexical editor.
 // Walks <editorRoot> and (a fallback subset of) <repoRoot> to inventory
 // custom nodes, plugins, commands, themes, serialization methods, and React 19 risks.
 // Writes:

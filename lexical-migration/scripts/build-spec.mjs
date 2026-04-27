@@ -25,7 +25,7 @@ const T = stateDir(repoRoot);
 if (args.flags['emit-prompt']) {
   const lines = [];
   lines.push(`# Phase 1 — Editor spec for review\n`);
-  lines.push(`Stocktake of \`${m.editorRootRel}\` produced this draft. Confirm or amend before transforms run.\n`);
+  lines.push(`Audit of \`${m.editorRootRel}\` produced this draft. Confirm or amend before transforms run.\n`);
   lines.push(`## Versions\n`);
   for (const [k, v] of Object.entries(audit.lexicalVersions)) lines.push(`- \`${k}\` → \`${v}\``);
   lines.push(`- react → \`${audit.react || '?'}\`\n`);
