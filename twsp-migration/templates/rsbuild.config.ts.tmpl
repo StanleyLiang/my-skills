@@ -1,0 +1,22 @@
+import { defineConfig } from '@rsbuild/core';
+import { pluginReact } from '@rsbuild/plugin-react';
+
+export default defineConfig({
+  plugins: [pluginReact()],
+  html: {
+    template: './index.html',
+  },
+  source: {
+    alias: {
+      // <ALIASES> filled in by port-tsconfig.mjs from source's tsconfig paths
+    },
+  },
+  server: {
+    port: 3000,
+    strictPort: false,
+  },
+  output: {
+    target: 'web',
+    distPath: { root: 'dist' },
+  },
+});

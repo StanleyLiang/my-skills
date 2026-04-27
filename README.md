@@ -1,0 +1,19 @@
+# my-skills
+
+Personal Claude Code skills.
+
+Each subdirectory is a self-contained skill (`SKILL.md` plus any supporting `references/`, `scripts/`, `templates/`).
+
+## Skills
+
+- **[twsp-migration](./twsp-migration/)** — port a Next.js source repo into a new rsbuild + React Router target repo, applying React 19, Tailwind 4, shadcn, and a new intl package along the way. Designed for ~12k-token sessions: state-machine dispatcher (`scripts/next.mjs`) drives a resumable, file-queued pipeline so each session does one tiny step and exits.
+
+## Installing a skill locally
+
+Symlink (or copy) any subdirectory into your `~/.claude/skills/` (or a project-local `.claude/skills/`):
+
+```sh
+ln -s "$(pwd)/twsp-migration" ~/.claude/skills/twsp-migration
+```
+
+Claude Code auto-discovers skills from these directories on session start.

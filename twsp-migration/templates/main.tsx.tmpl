@@ -1,0 +1,16 @@
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import './index.css';
+// <INTL_IMPORT> — replaced by wire-entrypoint.mjs if i18n mapping exists
+import { routes } from './routes.gen';
+
+const router = createBrowserRouter(routes);
+
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    {/* <INTL_PROVIDER_OPEN> */}
+    <RouterProvider router={router} />
+    {/* <INTL_PROVIDER_CLOSE> */}
+  </StrictMode>,
+);
