@@ -1,0 +1,11 @@
+{
+  "name": "stanley-liang-skills",
+  "owner": { "name": "stanleyliang" },
+  "plugins": [
+    {
+      "name": "stanley-liang-skills",
+      "source": "./",
+      "description": "Personal Claude Code skills: twsp-migration, lexical-migration"
+    }
+  ]
+}
