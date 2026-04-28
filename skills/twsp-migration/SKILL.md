@@ -1,6 +1,6 @@
 ---
 name: twsp-migration
-description: Use when porting an internal frontend project from a Next.js source repo into a new rsbuild target repo, applying these five upgrades during the port — React 17/18 → React 19, Tailwind 3 → Tailwind 4 CSS-first, Next.js App Router → rsbuild + React Router, in-house UI package → shadcn/ui, next-intl → a new (spec-supplied) intl package. Auto-invoke when the user mentions porting a Next.js app to rsbuild, scaffolding a new SPA from a Next codebase, or migrating off Next.js. Asks for sourceRoot and targetRoot up front; asks for the in-house UI spec markdown if the source uses the in-house package; asks for the new intl package's spec markdown if the source uses next-intl. Walks an ordered phased playbook with verification gates, STOPs on middleware and server-only APIs, and skips port-tasks that are not present in the source.
+description: Use when porting an internal frontend project from a Next.js source repo into an rsbuild target repo, applying these five upgrades during the port — React 17/18 → React 19, Tailwind 3 → Tailwind 4 CSS-first, Next.js App Router → rsbuild + React Router, in-house UI package → shadcn/ui, next-intl → a new (spec-supplied) intl package. Auto-invoke when the user mentions porting a Next.js app to rsbuild, scaffolding a new SPA from a Next codebase, or migrating off Next.js. Asks for sourceRoot and targetRoot up front; auto-detects npm/pnpm/yarn workspaces in source and picks the package containing the Next app (or accepts `--app-package <relpath>` if multiple match); accepts an already-initialized npm project as targetRoot and merges into it instead of demanding emptiness. Asks for the in-house UI spec markdown if the source uses the in-house package; asks for the new intl package's spec markdown if the source uses next-intl. Walks an ordered phased playbook with verification gates, STOPs on middleware and server-only APIs, and skips port-tasks that are not present in the source.
 ---
 
 # twsp-migration
@@ -9,10 +9,11 @@ Port a Next.js source repo into a new rsbuild + React Router target repo, applyi
 
 ## Session protocol (do this every session)
 
-1. **Confirm inputs.** If `./.twsp/migration.json` exists, read `sourceRoot` and `targetRoot` from it. Otherwise ask the user for both, then run:
+1. **Confirm inputs.** If `./.twsp/migration.json` exists, read `sourceRoot`, `targetRoot`, and `appPackageRoot` from it. Otherwise ask the user for `sourceRoot` and `targetRoot`, then run:
    ```sh
    node $SKILL/scripts/audit.mjs --source <sourceRoot> --target <targetRoot>
    ```
+   The audit auto-detects workspaces (npm `workspaces`, pnpm-workspace.yaml, yarn) and locates the package containing the Next app. If multiple workspace packages contain a Next app, it STOPs and asks for `--app-package <relpath>`. If `targetRoot` already has a `package.json`, the audit treats it as initialized (merge mode) — it only STOPs if target has `next`/`vite`/`webpack` in deps (conflicting bundlers).
    (`$SKILL` = `skills/twsp-migration` — substitute the absolute path.)
 
 2. **Run the dispatcher.** This is the single source of truth for what to do this session:

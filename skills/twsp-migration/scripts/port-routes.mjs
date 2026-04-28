@@ -30,6 +30,7 @@ if (!sourceRoot) stop('no migration.json found');
 const m = readMigration(sourceRoot);
 const audit = readAudit(sourceRoot);
 const target = m.targetRoot;
+const appRoot = m.appPackageRoot || sourceRoot;
 const T = twspDir(sourceRoot);
 
 const uiMapping = readJson(join(T, 'ui-mapping.json'));
@@ -42,7 +43,7 @@ if (audit.hasMiddleware) stop('middleware.ts present in source — STOP and ask 
 // next.config experimental.ppr
 const nextCfgCandidates = ['next.config.ts', 'next.config.js', 'next.config.mjs', 'next.config.cjs'];
 for (const n of nextCfgCandidates) {
-  const p = join(sourceRoot, n);
+  const p = join(appRoot, n);
   if (existsSync(p)) {
     const t = readFileSync(p, 'utf8');
     if (/experimental\s*:\s*\{[^}]*ppr\s*:/.test(t)) stop('next.config has experimental.ppr enabled');
@@ -51,8 +52,8 @@ for (const n of nextCfgCandidates) {
 
 // ── Build queue ─────────────────────────────────────────────────────
 if (!state.queues.routes) {
-  const appDir = join(sourceRoot, 'app');
-  const srcAppDir = join(sourceRoot, 'src', 'app');
+  const appDir = join(appRoot, 'app');
+  const srcAppDir = join(appRoot, 'src', 'app');
   const root = existsSync(appDir) ? appDir : (existsSync(srcAppDir) ? srcAppDir : null);
   if (!root) stop('no app/ directory found');
 
@@ -61,12 +62,12 @@ if (!state.queues.routes) {
   for (const f of all) {
     const base = basename(f);
     // Detect parallel/intercepted routes — STOP
-    if (/[/\\]@[^/\\]+[/\\]/.test(f)) stop(`parallel route detected: ${relative(sourceRoot, f)}`);
-    if (/\([\.][^)]+\)/.test(f)) stop(`intercepted route detected: ${relative(sourceRoot, f)}`);
+    if (/[/\\]@[^/\\]+[/\\]/.test(f)) stop(`parallel route detected: ${relative(appRoot, f)}`);
+    if (/\([\.][^)]+\)/.test(f)) stop(`intercepted route detected: ${relative(appRoot, f)}`);
     // Default api routes — skip (out of scope)
     if (f.includes('/app/api/') || f.includes('/src/app/api/')) continue;
     if (/^route\./.test(base)) continue; // route handlers (just in case)
-    if (/^default\./.test(base)) stop(`parallel-routes default file: ${relative(sourceRoot, f)}`);
+    if (/^default\./.test(base)) stop(`parallel-routes default file: ${relative(appRoot, f)}`);
     // page/layout/loading/error/not-found/template — port these
     if (/^(page|layout|loading|error|not-found|template)\.[jt]sx?$/.test(base)) items.push(f);
   }
@@ -108,18 +109,18 @@ for (let i = q.cursor; i < end; i++) {
 
   // Detect server-only API usage in route file
   if (/\b(?:cookies|headers|draftMode)\s*\(\s*\)/.test(content) && /from\s+['"]next\/headers['"]/.test(content)) {
-    stopsEncountered.push({ file: relative(sourceRoot, srcFile), stops: ['server-only cookies/headers/draftMode'] });
+    stopsEncountered.push({ file: relative(appRoot, srcFile), stops: ['server-only cookies/headers/draftMode'] });
     continue;
   }
   if (/from\s+['"]next-intl\/server['"]/.test(content)) {
-    stopsEncountered.push({ file: relative(sourceRoot, srcFile), stops: ['imports from next-intl/server'] });
+    stopsEncountered.push({ file: relative(appRoot, srcFile), stops: ['imports from next-intl/server'] });
     continue;
   }
 
   // Apply common transforms
   const { text, stops: tStops } = applyTransforms(content, { uiMapping, i18nMapping, todos });
   if (tStops.length > 0) {
-    stopsEncountered.push({ file: relative(sourceRoot, srcFile), stops: tStops });
+    stopsEncountered.push({ file: relative(appRoot, srcFile), stops: tStops });
     continue;
   }
 

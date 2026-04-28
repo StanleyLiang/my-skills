@@ -30,6 +30,7 @@ if (!sourceRoot) stop('no migration.json found');
 const m = readMigration(sourceRoot);
 const audit = readAudit(sourceRoot);
 const target = m.targetRoot;
+const appRoot = m.appPackageRoot || sourceRoot;
 const T = twspDir(sourceRoot);
 
 const uiMapping = readJson(join(T, 'ui-mapping.json'));
@@ -40,7 +41,7 @@ const restDirs = ['lib', 'hooks', 'store', 'types', 'utils', 'constants', 'servi
 
 if (!state.queues.rest) {
   const items = [];
-  for (const top of [sourceRoot, join(sourceRoot, 'src')]) {
+  for (const top of [appRoot, join(appRoot, 'src')]) {
     for (const d of restDirs) {
       const p = join(top, d);
       if (existsSync(p)) {
@@ -65,7 +66,7 @@ let processed = 0;
 
 for (let i = q.cursor; i < end; i++) {
   const srcFile = q.items[i];
-  const rel = relative(sourceRoot, srcFile);
+  const rel = relative(appRoot, srcFile);
   const dstRel = rel.startsWith('src/') ? rel : 'src/' + rel;
   const dst = join(target, dstRel);
 
@@ -95,13 +96,13 @@ if (q.cursor >= q.items.length) {
   if (i18nMapping && i18nMapping.messagesDir) {
     const dir = i18nMapping.messagesDir;
     const candidates = [
-      join(sourceRoot, dir),
-      join(sourceRoot, 'src', dir),
+      join(appRoot, dir),
+      join(appRoot, 'src', dir),
     ].filter(existsSync);
     let copied = 0;
     for (const root of candidates) {
       for (const f of walk(root, { exts: ['.json'], absolute: true })) {
-        const r = relative(sourceRoot, f);
+        const r = relative(appRoot, f);
         const dst = join(target, r.startsWith('src/') ? r : 'src/' + r);
         mkdirSync(dirname(dst), { recursive: true });
 

@@ -28,6 +28,7 @@ const sourceRoot = findSource();
 if (!sourceRoot) stop('no migration.json found');
 const m = readMigration(sourceRoot);
 const target = m.targetRoot;
+const appRoot = m.appPackageRoot || sourceRoot;
 
 // ── Detect source eslint config ─────────────────────────────────────
 const flatNames = ['eslint.config.js', 'eslint.config.mjs', 'eslint.config.cjs', 'eslint.config.ts'];
@@ -39,12 +40,12 @@ let srcEslintObj = null;
 let srcEslintPath = null;
 
 for (const n of flatNames) {
-  const p = join(sourceRoot, n);
+  const p = join(appRoot, n);
   if (existsSync(p)) { format = 'flat'; srcEslintPath = p; srcEslintText = readFileSync(p, 'utf8'); break; }
 }
 if (format === 'none') {
   for (const n of legacyNames) {
-    const p = join(sourceRoot, n);
+    const p = join(appRoot, n);
     if (existsSync(p)) {
       format = 'legacy';
       srcEslintPath = p;
@@ -58,7 +59,7 @@ if (format === 'none') {
 }
 if (format === 'none') {
   // Check package.json eslintConfig
-  const pkg = readPkg(sourceRoot);
+  const pkg = readPkg(appRoot);
   if (pkg && pkg.eslintConfig) {
     format = 'legacy';
     srcEslintObj = pkg.eslintConfig;

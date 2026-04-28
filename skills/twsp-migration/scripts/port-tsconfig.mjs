@@ -31,6 +31,7 @@ const sourceRoot = findSource();
 if (!sourceRoot) stop('no migration.json found');
 const m = readMigration(sourceRoot);
 const target = m.targetRoot;
+const appRoot = m.appPackageRoot || sourceRoot;
 
 // Strip JSON comments (TS allows them in tsconfig)
 function stripJsonComments(s) {
@@ -44,7 +45,7 @@ function readTsconfig(p) {
   return JSON.parse(stripJsonComments(raw));
 }
 
-const srcTsPath = join(sourceRoot, 'tsconfig.json');
+const srcTsPath = join(appRoot, 'tsconfig.json');
 if (!existsSync(srcTsPath)) {
   // No source tsconfig — keep target template as-is.
   const state = readState(sourceRoot);
@@ -91,7 +92,7 @@ function resolveExtends(cfg, baseDir) {
   return cfg;
 }
 
-const merged = resolveExtends(srcTs, sourceRoot);
+const merged = resolveExtends(srcTs, appRoot);
 const co = merged.compilerOptions || {};
 
 // ── Strip ───────────────────────────────────────────────────────────

@@ -28,6 +28,7 @@ const sourceRoot = findSource();
 if (!sourceRoot) stop('no migration.json found');
 const m = readMigration(sourceRoot);
 const audit = readAudit(sourceRoot);
+const appRoot = m.appPackageRoot || sourceRoot;
 const T = twspDir(sourceRoot);
 
 // ── Detect next-intl symbols actually used in source ────────────────
@@ -38,7 +39,7 @@ const NEXT_INTL_SYMBOLS = [
   'getRequestConfig', 'setRequestLocale',
 ];
 
-const codeFiles = walk(sourceRoot, { exts: ['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs'] });
+const codeFiles = walk(appRoot, { exts: ['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs'] });
 const detected = new Set();
 const importRe = /from\s+['"]next-intl(?:\/[^'"]*)?['"]/;
 for (const f of codeFiles) {

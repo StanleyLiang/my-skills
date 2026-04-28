@@ -30,11 +30,12 @@ const sourceRoot = findSource();
 if (!sourceRoot) stop('no migration.json found');
 const m = readMigration(sourceRoot);
 const target = m.targetRoot;
+const appRoot = m.appPackageRoot || sourceRoot;
 
 // ── Find source tailwind config ─────────────────────────────────────
 const cfgCandidates = ['tailwind.config.ts', 'tailwind.config.js', 'tailwind.config.cjs', 'tailwind.config.mjs'];
 let cfgPath = null;
-for (const n of cfgCandidates) if (existsSync(join(sourceRoot, n))) { cfgPath = join(sourceRoot, n); break; }
+for (const n of cfgCandidates) if (existsSync(join(appRoot, n))) { cfgPath = join(appRoot, n); break; }
 
 let cfgText = '';
 if (cfgPath) cfgText = readFileSync(cfgPath, 'utf8');
@@ -95,12 +96,12 @@ harvestNamespace('zIndex', 'z');
 
 // ── Find source globals.css and split into layers ───────────────────
 const globalsCandidates = [
-  join(sourceRoot, 'app', 'globals.css'),
-  join(sourceRoot, 'app', 'global.css'),
-  join(sourceRoot, 'src', 'app', 'globals.css'),
-  join(sourceRoot, 'src', 'index.css'),
-  join(sourceRoot, 'src', 'styles', 'globals.css'),
-  join(sourceRoot, 'styles', 'globals.css'),
+  join(appRoot, 'app', 'globals.css'),
+  join(appRoot, 'app', 'global.css'),
+  join(appRoot, 'src', 'app', 'globals.css'),
+  join(appRoot, 'src', 'index.css'),
+  join(appRoot, 'src', 'styles', 'globals.css'),
+  join(appRoot, 'styles', 'globals.css'),
 ];
 let globalsText = '';
 let globalsPath = null;

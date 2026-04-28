@@ -31,6 +31,7 @@ if (!sourceRoot) stop('no migration.json found');
 const m = readMigration(sourceRoot);
 const audit = readAudit(sourceRoot);
 const target = m.targetRoot;
+const appRoot = m.appPackageRoot || sourceRoot;
 const T = twspDir(sourceRoot);
 
 const uiMapping = readJson(join(T, 'ui-mapping.json'));
@@ -41,8 +42,8 @@ const state = readState(sourceRoot);
 // ── Build queue (only first time) ───────────────────────────────────
 if (!state.queues.components) {
   const candidates = [
-    join(sourceRoot, 'components'),
-    join(sourceRoot, 'src', 'components'),
+    join(appRoot, 'components'),
+    join(appRoot, 'src', 'components'),
   ].filter(existsSync);
   const items = [];
   for (const dir of candidates) {
@@ -78,7 +79,7 @@ const todos = [];
 
 for (let i = q.cursor; i < end; i++) {
   const srcFile = q.items[i];
-  const rel = relative(sourceRoot, srcFile)
+  const rel = relative(appRoot, srcFile)
     .replace(/^src\//, 'src/')
     .replace(/^components\//, 'src/components/');
   const dst = join(target, rel.startsWith('src/') ? rel : 'src/' + rel);

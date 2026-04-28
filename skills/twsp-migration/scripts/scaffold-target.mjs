@@ -1,18 +1,23 @@
 #!/usr/bin/env node
-// Phase 1 — Scaffold target rsbuild SPA.
-// Reads <sourceRoot>/.twsp/migration.json + audit.json.
-// Materializes <targetRoot> from templates, runs npm install, runs shadcn init,
-// runs verify build.
+// Phase 1 — Scaffold target rsbuild SPA, merging with any pre-existing target.
+//
+// Behavior:
+//   - If target is absent or empty: full materialization from templates + npm install.
+//   - If target has package.json: merge — only write files that don't already exist;
+//     merge package.json deps (add missing template deps; never downgrade existing).
+//   - Skips `git init` if target is already a git repo.
+//   - Skips `shadcn init` if target already has components.json.
+//   - Always runs npm install at the end.
 //
 // Usage:
 //   node scaffold-target.mjs [--source <path>]
 //   node scaffold-target.mjs --self-test
 
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync } from 'node:fs';
 import { join, basename, resolve } from 'node:path';
 import {
   say, stop, parseArgs, selfTestGate, readMigration, readAudit, readState, writeState,
-  readTemplate, writeFile, run, logSidecar, ensureDir, twspDir,
+  readTemplate, writeFile, run, logSidecar, ensureDir, readPkg, writePkg,
 } from './_lib.mjs';
 
 const SCRIPT = 'scaffold-target.mjs';
@@ -37,54 +42,107 @@ const m = readMigration(sourceRoot);
 const audit = readAudit(sourceRoot);
 const target = m.targetRoot;
 const name = basename(target);
-
-// Idempotency: if package.json already exists, treat as already scaffolded.
-if (existsSync(join(target, 'package.json'))) {
-  say(`scaffold: target already initialized at ${target}`);
-  const state = readState(sourceRoot);
-  state.step = 'scaffold';
-  writeState(sourceRoot, state);
-  process.exit(0);
-}
+const ta = audit?.targetAudit || {};
 
 ensureDir(target);
 ensureDir(join(target, 'src'));
 
-// ── Materialize templates ───────────────────────────────────────────
+// ── Helper: write file only if missing ──────────────────────────────
+function writeIfAbsent(absPath, content) {
+  if (existsSync(absPath)) return false;
+  writeFile(absPath, content);
+  return true;
+}
+
 const subst = (s) => s.replaceAll('<NAME>', name);
 
-writeFile(join(target, 'package.json'), subst(readTemplate('package.json.tmpl')));
-writeFile(join(target, 'rsbuild.config.ts'), readTemplate('rsbuild.config.ts.tmpl'));
-writeFile(join(target, 'postcss.config.js'), readTemplate('postcss.config.js.tmpl'));
-writeFile(join(target, 'tsconfig.json'), readTemplate('tsconfig.json.tmpl'));
-writeFile(join(target, 'eslint.config.js'), readTemplate('eslint.config.js.tmpl'));
-writeFile(join(target, 'index.html'), subst(readTemplate('index.html.tmpl')));
-writeFile(join(target, '.gitignore'), readTemplate('gitignore.tmpl'));
+// ── Merge package.json (or write fresh) ─────────────────────────────
+const tplPkg = JSON.parse(subst(readTemplate('package.json.tmpl')));
+let pkg;
+let mergedAdds = 0;
+if (existsSync(join(target, 'package.json'))) {
+  pkg = readPkg(target);
+  if (!pkg) stop('target package.json is unreadable');
+  pkg.dependencies = pkg.dependencies || {};
+  pkg.devDependencies = pkg.devDependencies || {};
+  pkg.scripts = pkg.scripts || {};
+  // Add missing template deps. Do NOT downgrade or replace existing.
+  for (const [k, v] of Object.entries(tplPkg.dependencies || {})) {
+    if (!pkg.dependencies[k] && !pkg.devDependencies[k]) {
+      pkg.dependencies[k] = v;
+      mergedAdds++;
+    }
+  }
+  for (const [k, v] of Object.entries(tplPkg.devDependencies || {})) {
+    if (!pkg.dependencies[k] && !pkg.devDependencies[k]) {
+      pkg.devDependencies[k] = v;
+      mergedAdds++;
+    }
+  }
+  // Add missing scripts. Don't overwrite custom ones.
+  for (const [k, v] of Object.entries(tplPkg.scripts || {})) {
+    if (!pkg.scripts[k]) pkg.scripts[k] = v;
+  }
+  writePkg(target, pkg);
+  say(`merged package.json: added ${mergedAdds} dep(s)`);
+} else {
+  writeFile(join(target, 'package.json'), JSON.stringify(tplPkg, null, 2) + '\n');
+  pkg = tplPkg;
+  say(`wrote fresh package.json`);
+}
 
-// Placeholder routes.gen.ts so main.tsx imports cleanly until Phase 5
-writeFile(join(target, 'src', 'routes.gen.ts'), `import type { RouteObject } from 'react-router-dom';\nexport const routes: RouteObject[] = [\n  { path: '/', element: null },\n];\n`);
+// ── Config files: write only if absent ──────────────────────────────
+const configs = [
+  ['rsbuild.config.ts', 'rsbuild.config.ts.tmpl', false],
+  ['postcss.config.js', 'postcss.config.js.tmpl', false],
+  ['tsconfig.json', 'tsconfig.json.tmpl', false],
+  ['eslint.config.js', 'eslint.config.js.tmpl', false],
+  ['index.html', 'index.html.tmpl', true],
+  ['.gitignore', 'gitignore.tmpl', false],
+];
+let configsWritten = 0;
+for (const [filename, tmpl, doSubst] of configs) {
+  const content = doSubst ? subst(readTemplate(tmpl)) : readTemplate(tmpl);
+  if (writeIfAbsent(join(target, filename), content)) configsWritten++;
+}
 
-// Placeholder main.tsx (stripped of intl markers — Phase 5 rewrites)
+// Placeholder routes.gen.ts (only if absent)
+writeIfAbsent(
+  join(target, 'src', 'routes.gen.ts'),
+  `import type { RouteObject } from 'react-router-dom';\nexport const routes: RouteObject[] = [\n  { path: '/', element: null },\n];\n`
+);
+
+// Placeholder main.tsx (only if absent — Phase 5 wires for real)
 const mainTpl = readTemplate('main.tsx.tmpl')
   .replace(/\/\/ <INTL_IMPORT>.*\n/g, '')
   .replace(/\{\/\* <INTL_PROVIDER_OPEN> \*\/\}\s*/g, '')
   .replace(/\s*\{\/\* <INTL_PROVIDER_CLOSE> \*\/\}/g, '');
-writeFile(join(target, 'src', 'main.tsx'), mainTpl);
+writeIfAbsent(join(target, 'src', 'main.tsx'), mainTpl);
 
-// Placeholder index.css — empty TW import; Phase 2a fills it
-writeFile(join(target, 'src', 'index.css'), '@import "tailwindcss";\n');
+// Placeholder index.css (only if absent — Phase 2a fills it)
+writeIfAbsent(join(target, 'src', 'index.css'), '@import "tailwindcss";\n');
 
-// MIGRATION_NOTES placeholder
-writeFile(join(target, 'MIGRATION_NOTES.md'), `# Migration notes\n\nGenerated by twsp-migration. TODOs and follow-ups are appended here as the port progresses.\n`);
+// MIGRATION_NOTES (always append-safe; create if missing)
+writeIfAbsent(
+  join(target, 'MIGRATION_NOTES.md'),
+  `# Migration notes\n\nGenerated by twsp-migration. TODOs and follow-ups are appended here as the port progresses.\n`
+);
 
-// Initial git
-const git1 = run('git', ['init', '-q'], { cwd: target });
-if (git1.code !== 0) {
-  const log = logSidecar(sourceRoot, SCRIPT, git1.stderr);
-  stop('git init failed', log);
+say(`scaffold files: configs=${configsWritten} (existing preserved)`);
+
+// ── Git init (skip if already a repo) ───────────────────────────────
+if (!ta.hasGitDir && !existsSync(join(target, '.git'))) {
+  const git1 = run('git', ['init', '-q'], { cwd: target });
+  if (git1.code !== 0) {
+    const log = logSidecar(sourceRoot, SCRIPT, git1.stderr);
+    stop('git init failed', log);
+  }
+  run('git', ['config', 'user.email', 'twsp@local'], { cwd: target });
+  run('git', ['config', 'user.name', 'twsp-migration'], { cwd: target });
+  say('git init ok');
+} else {
+  say('git already initialized — skipping');
 }
-run('git', ['config', 'user.email', 'twsp@local'], { cwd: target });
-run('git', ['config', 'user.name', 'twsp-migration'], { cwd: target });
 
 // ── npm install ─────────────────────────────────────────────────────
 say(`installing deps in ${target}…`);
@@ -94,13 +152,16 @@ if (npmI.code !== 0) {
   stop('npm install failed', log);
 }
 
-// ── shadcn init ─────────────────────────────────────────────────────
-say('shadcn init…');
-const shInit = run('npx', ['--yes', 'shadcn@latest', 'init', '--yes', '--defaults', '--base-color', 'neutral', '--css-variables'], { cwd: target });
-if (shInit.code !== 0) {
-  const log = logSidecar(sourceRoot, SCRIPT, shInit.stderr || shInit.stdout);
-  // Non-fatal — warn and continue. Phase 3/4 can re-init if needed.
-  say(`shadcn init warning (continuing): ${log}`);
+// ── shadcn init (skip if components.json already present) ───────────
+if (!ta.hasComponentsJson && !existsSync(join(target, 'components.json'))) {
+  say('shadcn init…');
+  const shInit = run('npx', ['--yes', 'shadcn@latest', 'init', '--yes', '--defaults', '--base-color', 'neutral', '--css-variables'], { cwd: target });
+  if (shInit.code !== 0) {
+    const log = logSidecar(sourceRoot, SCRIPT, shInit.stderr || shInit.stdout);
+    say(`shadcn init warning (continuing): ${log}`);
+  }
+} else {
+  say('shadcn already initialized — skipping');
 }
 
 // ── verify ──────────────────────────────────────────────────────────
@@ -115,9 +176,8 @@ if (build.code !== 0) {
   stop('scaffold rsbuild build failed', log);
 }
 
-// ── State ───────────────────────────────────────────────────────────
 const state = readState(sourceRoot);
 state.step = 'scaffold';
 writeState(sourceRoot, state);
 
-say(`scaffold ok: ${target} (${name})`);
+say(`scaffold ok: ${target} (${name}) mode=${ta.hasPackageJson ? 'merged' : 'fresh'}`);
