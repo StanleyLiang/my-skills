@@ -202,23 +202,15 @@ const hasMiddleware =
   existsSync(join(appPackageRoot, 'middleware.js')) ||
   existsSync(join(appPackageRoot, 'src', 'middleware.ts'));
 
-// In-house pkg detection — use the app package's deps, fallback to source root.
+// In-house pkg detection — multi-candidate, ranked by import count, STOP on ambiguity.
+// (Manual override via --in-house-pkg <name> bypasses ranking.)
 const knownScopes = new Set([
   '@types', '@tailwindcss', '@rsbuild', '@radix-ui', '@hookform', '@tanstack',
   '@floating-ui', '@vercel', '@next', '@swc', '@babel', '@eslint', '@typescript-eslint',
   '@testing-library', '@reduxjs', '@react-types', '@lexical', '@formatjs',
 ]);
 let inHousePkg = args.flags['in-house-pkg'] || null;
-if (!inHousePkg) {
-  const allDeps = { ...(pkg.dependencies || {}), ...(pkg.devDependencies || {}) };
-  for (const name of Object.keys(allDeps)) {
-    const m = name.match(/^@([^/]+)\//);
-    if (!m) continue;
-    if (knownScopes.has(`@${m[1]}`)) continue;
-    inHousePkg = name;
-    break;
-  }
-}
+let inHouseCandidates = []; // populated below for transparency in audit.json
 
 // ── Grep code under appPackageRoot ──────────────────────────────────
 const codeDirs = ['app', 'src', 'pages'].map(d => join(appPackageRoot, d)).filter(existsSync);
@@ -267,16 +259,54 @@ for (const f of codeFiles) {
 }
 
 // ── In-house pkg usage check ────────────────────────────────────────
+// Build a per-package import-count map by scanning every file once.
+// We do this for both the manual-override case and the auto-detect case.
 let inHouseImportCount = 0;
-if (inHousePkg) {
-  const re = new RegExp(`from\\s+['"]${inHousePkg.replace(/[/.]/g, '\\$&')}(?:/|['"])`, 'g');
+function countImports(name) {
+  const re = new RegExp(`from\\s+['"]${name.replace(/[/.]/g, '\\$&')}(?:/|['"])`, 'g');
+  let count = 0;
   for (const f of codeFiles) {
     let content;
     try { content = readFileSync(f, 'utf8'); } catch { continue; }
     const matches = content.match(re);
-    if (matches) inHouseImportCount += matches.length;
+    if (matches) count += matches.length;
   }
-  if (inHouseImportCount === 0) inHousePkg = null;
+  return count;
+}
+
+if (inHousePkg) {
+  // Manual override: trust the user, just count imports.
+  inHouseImportCount = countImports(inHousePkg);
+  inHouseCandidates = [{ name: inHousePkg, importCount: inHouseImportCount, source: 'manual' }];
+  if (inHouseImportCount === 0) {
+    // User-specified pkg has no imports — surface as a warning, but keep their choice.
+    say(`warning: --in-house-pkg ${inHousePkg} has 0 imports under ${appPackageRel}`);
+  }
+} else {
+  // Auto-detect: collect every @scope/ dep not in the known-scope whitelist,
+  // count its imports, and rank.
+  const allDeps = { ...(pkg.dependencies || {}), ...(pkg.devDependencies || {}) };
+  const candidateNames = Object.keys(allDeps).filter(name => {
+    const m = name.match(/^@([^/]+)\//);
+    return m && !knownScopes.has(`@${m[1]}`);
+  });
+  const ranked = candidateNames
+    .map(name => ({ name, importCount: countImports(name), source: 'auto' }))
+    .filter(c => c.importCount > 0)
+    .sort((a, b) => b.importCount - a.importCount);
+  inHouseCandidates = ranked;
+
+  if (ranked.length === 0) {
+    inHousePkg = null;
+  } else if (ranked.length === 1) {
+    inHousePkg = ranked[0].name;
+    inHouseImportCount = ranked[0].importCount;
+  } else {
+    // Multiple candidates with real import sites — STOP and let the user disambiguate.
+    // This mirrors the workspace multi-match behavior so the agent isn't guessing.
+    const list = ranked.map(c => `${c.name} (${c.importCount} imports)`).join(', ');
+    stop(`multiple in-house UI candidates detected with imports: [${list}]; re-run audit.mjs with --in-house-pkg <name>`);
+  }
 }
 
 const hasNextIntl = !!nextIntlVer;
@@ -306,7 +336,7 @@ const audit = {
   tailwind: tailwindVer,
   typesReact: typesReactVer,
   hasShadcn,
-  inHousePkg, inHouseImportCount,
+  inHousePkg, inHouseImportCount, inHouseCandidates,
   hasNextIntl, nextIntlVersion: nextIntlVer,
   hasLocaleSegment,
   hasMiddleware,

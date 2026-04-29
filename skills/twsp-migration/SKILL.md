@@ -92,6 +92,7 @@ Per-phase narrative lives in `references/phases.md`. `next.mjs` quotes the relev
 - `experimental.ppr` enabled in `next.config.ts` (Phase 4b, Next 16).
 - Parallel/intercepted routes (Phase 4b).
 - In-house UI component without a spec entry; next-intl symbol without a mapping entry (Phase 3, Phase 4a).
+- Multiple in-house UI candidates detected with imports (Phase 0). The audit ranks every `@scope/...` dep (excluding well-known scopes like `@types`, `@radix-ui`, `@tanstack`, etc.) by import count under `appPackageRoot`. With one candidate it auto-picks; with two or more it STOPs and asks for `--in-house-pkg <name>` so the wrong package isn't fed into Phase 3a.
 - Custom Tailwind JS plugin with no v4 equivalent (Phase 2a).
 - Codemod recipe failed or peer-deps incompatible third party (Phase 4a).
 

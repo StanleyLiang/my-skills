@@ -1,0 +1,82 @@
+[
+  {
+    "query": "I need to port our internal Next.js 14 app at ~/work/portal-web to a fresh rsbuild repo at ~/work/portal-spa. We're moving off Next App Router and want React Router instead. Can you walk me through it?",
+    "should_trigger": true
+  },
+  {
+    "query": "ok so we're finally killing next.js in our admin panel, gonna move to rsbuild. the source is in apps/admin (it's a turborepo workspace), need to land in a new repo. how do i start",
+    "should_trigger": true
+  },
+  {
+    "query": "we want react 19, tailwind 4, and shadcn instead of our in-house ui kit. source is a next 15 app at /Users/me/repo with next-intl. target is /Users/me/repo-new which already has package.json",
+    "should_trigger": true
+  },
+  {
+    "query": "we're migrating from next.js to rsbuild + react-router this quarter, can you help plan the move? source: ~/code/dashboard",
+    "should_trigger": true
+  },
+  {
+    "query": "I have a pnpm workspace with apps/web (next 14 + app router) and apps/api. need to extract apps/web into a standalone rsbuild repo with react 19. target dir: /tmp/web-spa",
+    "should_trigger": true
+  },
+  {
+    "query": "幫我把公司內部的 Next.js 專案搬遷到 rsbuild + React Router。原始 repo 在 ~/work/intranet-portal，目標 repo 是 ~/work/intranet-spa（剛 initialized）。",
+    "should_trigger": true
+  },
+  {
+    "query": "我們要把 next.js 換成 rsbuild，順便升 react 19 跟 tailwind 4。next-intl 也要換成新的 intl 套件。怎麼開始？",
+    "should_trigger": true
+  },
+  {
+    "query": "我們團隊要從 next 14 app router 換成 react router v7 spa，這該怎麼做？source: /Users/me/projects/portal",
+    "should_trigger": true
+  },
+  {
+    "query": "we need to get off Next.js and onto rsbuild. our app is in /Users/sl/work/web-frontend. take it from here",
+    "should_trigger": true
+  },
+  {
+    "query": "the in-house ui pkg @company/uikit needs to be replaced with shadcn as part of moving the next.js app to rsbuild. start with the audit?",
+    "should_trigger": true
+  },
+  {
+    "query": "i'm upgrading our lexical editor from 0.18 to latest because of react 19 compatibility. the editor is in src/components/Editor",
+    "should_trigger": false
+  },
+  {
+    "query": "我們在用 vite 但想換成 next.js 14, 該怎麼遷移?",
+    "should_trigger": false
+  },
+  {
+    "query": "ok i need to upgrade just our tailwind config from v3 to v4 in this next.js app. don't want to change anything else",
+    "should_trigger": false
+  },
+  {
+    "query": "i'm moving our create-react-app project to vite, what's the easiest path? source is at ~/work/dashboard",
+    "should_trigger": false
+  },
+  {
+    "query": "can you help me add rsbuild as a build tool to our existing turborepo? we already have packages/ui set up and want a new packages/web entry",
+    "should_trigger": false
+  },
+  {
+    "query": "I want to upgrade react 18 to react 19 across our monorepo. nothing else changing for now — just the react bump",
+    "should_trigger": false
+  },
+  {
+    "query": "我剛起了一個新的 vite + react 專案，想加 shadcn ui，怎麼裝?",
+    "should_trigger": false
+  },
+  {
+    "query": "we're going next 14 → 15 to get the new caching behavior, anything to watch out for? staying on next, just bumping the version",
+    "should_trigger": false
+  },
+  {
+    "query": "我們的 next.js 專案還在用 pages router，想改成 app router，從哪開始?",
+    "should_trigger": false
+  },
+  {
+    "query": "我們 next-intl 從 3.x 升到 4.x，遇到一些 breaking changes，怎麼處理？專案還是跑 next.js 沒換掉",
+    "should_trigger": false
+  }
+]
